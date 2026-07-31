@@ -48,11 +48,35 @@ st.markdown("""
         box-shadow: 0 0 30px #f85149;
     }
     
-    /* Selector Entrada/Salida más grande */
+    /* Animación de parpadeo cuando quedan <= 10 segundos */
+    @keyframes warning-blink {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.98); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    .blink-alert {
+        animation: warning-blink 1s infinite;
+    }
+
+    /* Contenedor del selector centrado */
+    div[data-testid="stSegmentedControlContainer"] {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+        margin-bottom: 25px !important;
+    }
+
+    /* Selector Entrada/Salida mucho más grande y llamativo */
+    div[data-testid="stSegmentedControl"] {
+        width: 100% !important;
+        max-width: 600px !important;
+    }
+
     div[data-testid="stSegmentedControl"] button {
-        font-size: 1.25rem !important;
-        padding: 12px 24px !important;
-        font-weight: 600 !important;
+        font-size: 1.4rem !important;
+        padding: 16px 28px !important;
+        font-weight: 700 !important;
+        border-radius: 12px !important;
     }
     
     /* Barra de progreso personalizada más grande */
@@ -67,6 +91,11 @@ st.markdown("""
         font-weight: 600;
         margin-bottom: 4px;
         opacity: 0.9;
+    }
+    
+    .centered-title {
+        text-align: center;
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -85,17 +114,15 @@ CICLO_TOTAL = DURACION_VERDE + DURACION_AMBAR + DURACION_ROJO
 REF_ENTRADA = datetime.time(18, 0, 59)
 REF_SALIDA = datetime.time(18, 6, 28)
 
-# Función para consultar la meteorología (con caché de 10 min para optimizar)
+# Función para consultar la meteorología
 @st.cache_data(ttl=600)
 def obtener_clima_arnedillo():
     try:
-        # Coordenadas aproximadas de Arnedillo (La Rioja)
         url = "https://api.open-meteo.com/v1/forecast?latitude=42.2136&longitude=-2.2356&current=temperature_2m,weather_code&timezone=Europe%2FBerlin"
         res = requests.get(url, timeout=3).json()
         temp = round(res["current"]["temperature_2m"])
         code = res["current"]["weather_code"]
         
-        # Mapeo de códigos WMO a descripción visual
         clima_dict = {
             0: ("☀️", "Despejado"),
             1: ("🌤️", "Casi despejado"),
@@ -113,8 +140,9 @@ def obtener_clima_arnedillo():
     except Exception:
         return "🌡️ No disponible"
 
-# Selección de sentido
-st.markdown("### Selecciona el sentido de circulación:")
+# Título y Selector centrado y de mayor tamaño
+st.markdown("<h3 class='centered-title'>Selecciona el sentido de circulación:</h3>", unsafe_allow_html=True)
+
 opcion = st.segmented_control(
     "Selecciona el sentido de circulación:",
     options=["Entrada a Arnedillo", "Salida de Arnedillo"],
@@ -170,10 +198,22 @@ with placeholder.container():
     tiempo_formateado = f"{mins:02d}:{segs:02d}"
     porcentaje_texto = f"{int(progreso * 100)}%"
     
+    # 1. PREDICCIÓN: Calcular la hora exacta del próximo cambio
+    hora_proximo_cambio = ahora_madrid + datetime.timedelta(seconds=restante)
+    
+    # 2. AVISO VISUAL: Activar animación parpadeante cuando queden <= 10s
+    clase_animacion = "blink-alert" if restante <= 10 else ""
+    
+    # Notificación flotante (toast) cuando se acerca el cambio a verde
+    if estado == "ROJO" and restante <= 10:
+        st.toast(f"🔔 ¡Atención! Semáforo cambiando a VERDE en {restante}s", icon="🟢")
+    elif estado == "VERDE" and restante <= 10:
+        st.toast(f"⚠️ El semáforo se pondrá en ROJO en {restante}s", icon="🔴")
+    
     # Tarjeta Principal del Semáforo
     st.markdown(
         f"""
-        <div class="traffic-box" style="background-color: {bg_color}; border: 2px solid {border_color};">
+        <div class="traffic-box {clase_animacion}" style="background-color: {bg_color}; border: 2px solid {border_color};">
             <div class="traffic-light {glow}"></div>
             <h1 style="margin: 0; font-size: 2.8em; letter-spacing: 2px;">{estado}</h1>
             <h2 style="margin: 10px 0 0 0; font-size: 3.2em; font-family: monospace;">{tiempo_formateado}</h2>
@@ -203,17 +243,22 @@ with placeholder.container():
     else:
         st.error(mensaje)
         
-    # Información adicional
+    # Información adicional con hora del próximo cambio incorporada
     st.divider()
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.metric(
-            label="🕒 Hora Local (España)", 
+            label="🕒 Hora Local", 
             value=ahora_madrid.strftime("%H:%M:%S")
         )
     with col2:
         st.metric(
-            label="🏔️ Clima en Arnedillo", 
+            label="⏱️ Próximo Cambio", 
+            value=hora_proximo_cambio.strftime("%H:%M:%S")
+        )
+    with col3:
+        st.metric(
+            label="🏔️ Clima Arnedillo", 
             value=obtener_clima_arnedillo()
         )
 
