@@ -6,62 +6,50 @@ import requests
 import json
 import base64
 
-# ---------------------------------------------------------
-# 1. ZONA HORARIA Y CONFIGURACIÓN DE LA PÁGINA (NAVEGADOR)
-# ---------------------------------------------------------
+# Configuración de la zona horaria de España Peninsular
 TZ_MADRID = ZoneInfo("Europe/Madrid")
 
-# Configuración de la pestaña del navegador web
+# Configuración de la página
 st.set_page_config(
-    page_title="Semáforo", # Título de la pestaña
-    page_icon="🚦",         # Icono en la pestaña del navegador
+    page_title="Semáforo Arnedillo",
+    page_icon="🚦",
     layout="centered"
 )
 
-# ---------------------------------------------------------
-# 2. CONFIGURACIÓN PWA (NOMBRE E ICONO DE LA APP EN MÓVIL)
-# ---------------------------------------------------------
-APP_NOMBRE_COMPLETO = "Semáforo"
-APP_NOMBRE_CORTO = "Semáforo"
-
-# URL de un icono HD de semáforo transparente para la app
-APP_ICONO_URL = "https://cdn-icons-png.flaticon.com/512/3448/3448339.png"
-
+# --- CONFIGURACIÓN DE PWA (MANIFEST.JSON EMBUDIDO) ---
 manifest_data = {
-    "name": APP_NOMBRE_COMPLETO,
-    "short_name": APP_NOMBRE_CORTO,
+    "name": "Semáforo Arnedillo",
+    "short_name": "Semáforo",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0e1117",
     "theme_color": "#0e1117",
     "icons": [
         {
-            "src": APP_ICONO_URL,
+            "src": "https://em-content.zobj.net/source/apple/391/traffic-light_1f8a5.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": APP_ICONO_URL,
+            "src": "https://em-content.zobj.net/source/apple/391/traffic-light_1f8a5.png",
             "sizes": "512x512",
             "type": "image/png"
         }
     ]
 }
 
-# Codificar manifest en Base64 para inyección HTML
+# Codificar el manifest en base64 para inyectarlo dinámicamente
 manifest_base64 = base64.b64encode(json.dumps(manifest_data).encode()).decode()
 
-# ---------------------------------------------------------
-# 3. ESTILOS CSS PERSONALIZADOS + META ETIQUETAS PWA
-# ---------------------------------------------------------
+# Estilos CSS personalizados + Meta Etiquetas PWA
 st.markdown(f"""
     <!-- Metatags para compatibilidad PWA en iOS y Android -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="{APP_NOMBRE_CORTO}">
+    <meta name="apple-mobile-web-app-title" content="Semáforo Arnedillo">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0e1117">
-    <link rel="apple-touch-icon" href="{APP_ICONO_URL}">
+    <link rel="apple-touch-icon" href="https://em-content.zobj.net/source/apple/391/traffic-light_1f8a5.png">
     <link rel="manifest" href="data:application/json;base64,{manifest_base64}">
 
     <style>
@@ -114,7 +102,7 @@ st.markdown(f"""
         margin-bottom: 25px !important;
     }}
 
-    /* Selector Entrada/Salida grande */
+    /* Selector Entrada/Salida mucho más grande */
     div[data-testid="stSegmentedControl"] {{
         width: 100% !important;
         max-width: 600px !important;
@@ -148,12 +136,11 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# 4. TÍTULO Y GUÍA DE INSTALACIÓN
-# ---------------------------------------------------------
+# Título de la aplicación
 st.title("🚦 Control del Semáforo de Arnedillo")
 st.caption("Paso alternativo unidireccional en tiempo real")
 
+# Guía paso a paso para guardar como App en el teléfono
 with st.expander("📲 ¿Cómo instalar esta App en tu teléfono?"):
     st.markdown("""
     **En iPhone / iPad (Safari):**
@@ -161,13 +148,11 @@ with st.expander("📲 ¿Cómo instalar esta App en tu teléfono?"):
     2. Selecciona **"Añadir a la pantalla de inicio"** ➕.
 
     **En Android (Chrome / Edge):**
-    1. Pulsa los **3 puntos** de la esquina superior derecha ⋮.
-    2. Selecciona **"Añadir a la pantalla de inicio"** o **"Instalar aplicación"** 📲.
+    3. Pulsa los **3 puntos** de la esquina superior derecha ⋮.
+    4. Selecciona **"Añadir a la pantalla de inicio"** o **"Instalar aplicación"** 📲.
     """)
 
-# ---------------------------------------------------------
-# 5. CONFIGURACIÓN DEL CICLO Y TIEMPOS
-# ---------------------------------------------------------
+# Configuración del ciclo (en segundos)
 DURACION_VERDE = 67    # 1 min 7 seg
 DURACION_AMBAR = 3     # 3 seg
 DURACION_ROJO = 590    # 9 min 50 seg
@@ -177,7 +162,7 @@ CICLO_TOTAL = DURACION_VERDE + DURACION_AMBAR + DURACION_ROJO
 REF_ENTRADA = datetime.time(18, 0, 59)
 REF_SALIDA = datetime.time(18, 6, 28)
 
-# API del clima
+# Función para consultar la meteorología
 @st.cache_data(ttl=600)
 def obtener_clima_arnedillo():
     try:
@@ -203,9 +188,7 @@ def obtener_clima_arnedillo():
     except Exception:
         return "🌡️ No disponible"
 
-# ---------------------------------------------------------
-# 6. SELECTOR CENTRADO Y CÁLCULO DE ESTADO
-# ---------------------------------------------------------
+# Selector centrado y grande
 st.markdown("<h3 class='centered-title'>Selecciona el sentido de circulación:</h3>", unsafe_allow_html=True)
 
 opcion = st.segmented_control(
@@ -252,9 +235,7 @@ def calcular_estado(hora_referencia):
 
 hora_ref = REF_ENTRADA if opcion == "Entrada a Arnedillo" else REF_SALIDA
 
-# ---------------------------------------------------------
-# 7. RENDERIZADO DINÁMICO DE LA INTERFAZ
-# ---------------------------------------------------------
+# Contenedor dinámico
 placeholder = st.empty()
 
 with placeholder.container():
@@ -265,19 +246,19 @@ with placeholder.container():
     tiempo_formateado = f"{mins:02d}:{segs:02d}"
     porcentaje_texto = f"{int(progreso * 100)}%"
     
-    # Hora exacta del próximo cambio de estado
+    # Predicción de la hora exacta del próximo cambio
     hora_proximo_cambio = ahora_madrid + datetime.timedelta(seconds=restante)
     
-    # Clase CSS para parpadeo cuando queden <= 10s
+    # Animación de parpadeo cuando quedan <= 10 segundos
     clase_animacion = "blink-alert" if restante <= 10 else ""
     
-    # Alerta flotante toast
+    # Notificación flotante (toast)
     if estado == "ROJO" and restante <= 10:
         st.toast(f"🔔 ¡Atención! Semáforo cambiando a VERDE en {restante}s", icon="🟢")
     elif estado == "VERDE" and restante <= 10:
         st.toast(f"⚠️ El semáforo se pondrá en ROJO en {restante}s", icon="🔴")
     
-    # Tarjeta Principal
+    # Tarjeta Principal del Semáforo
     st.markdown(
         f"""
         <div class="traffic-box {clase_animacion}" style="background-color: {bg_color}; border: 2px solid {border_color};">
@@ -290,7 +271,7 @@ with placeholder.container():
         unsafe_allow_html=True
     )
     
-    # Barra de progreso
+    # Barra de progreso con porcentaje
     st.markdown(
         f"""
         <div class="progress-label">
@@ -302,7 +283,7 @@ with placeholder.container():
     )
     st.progress(progreso)
     
-    # Mensaje de estado
+    # Cuadro informativo
     if estado == "VERDE":
         st.success(mensaje)
     elif estado == "ÁMBAR":
@@ -310,7 +291,7 @@ with placeholder.container():
     else:
         st.error(mensaje)
         
-    # Métricas inferiores
+    # Información de tiempo y clima
     st.divider()
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -329,6 +310,6 @@ with placeholder.container():
             value=obtener_clima_arnedillo()
         )
 
-# Actualización en bucle cada 1 segundo
+# Actualización continua
 time.sleep(1)
 st.rerun()
