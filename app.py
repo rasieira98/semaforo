@@ -17,8 +17,8 @@ CICLO_TOTAL = DURACION_VERDE + DURACION_AMBAR + DURACION_ROJO  # 660 seg (11 min
 REF_ENTRADA = datetime.time(18, 0, 59)
 REF_SALIDA = datetime.time(18, 6, 28)
 
-# Selección de semáforo
-opcion = st.radio(Dirección:, [Entrada a Arnedillo, Salida de Arnedillo], horizontal=True)
+# Selección de semáforo (con comillas corregidas)
+opcion = st.radio("Dirección:", ["Entrada a Arnedillo", "Salida de Arnedillo"], horizontal=True)
 
 # Contenedor para refresco dinámico
 placeholder = st.empty()
@@ -49,7 +49,7 @@ def calcular_estado(hora_referencia):
         
     return estado, int(restante), mensaje, color
 
-# Bucle de actualización automática
+# Bucle de actualización
 hora_ref = REF_ENTRADA if opcion == "Entrada a Arnedillo" else REF_SALIDA
 
 with placeholder.container():
@@ -58,9 +58,12 @@ with placeholder.container():
     mins = restante // 60
     segs = restante % 60
     
+    # Ajuste de color del texto si el fondo es ámbar para mejor legibilidad
+    color_texto = "black" if estado == "ÁMBAR" else "white"
+    
     st.markdown(
         f"""
-        <div style="background-color: {color}; padding: 25px; border-radius: 12px; text-align: center; color: white;">
+        <div style="background-color: {color}; padding: 25px; border-radius: 12px; text-align: center; color: {color_texto};">
             <h1 style="margin: 0; font-size: 3em;">{estado}</h1>
             <p style="font-size: 1.2em; margin-top: 10px;">{mensaje}</p>
             <h2 style="margin: 0; font-size: 2.5em;">{mins:02d}:{segs:02d}</h2>
@@ -70,6 +73,6 @@ with placeholder.container():
     )
     st.caption(f"Hora actual: {datetime.datetime.now().strftime('%H:%M:%S')}")
 
-# Auto-refresco cada segundo
+# Auto-refresco continuo cada segundo
 time.sleep(1)
 st.rerun()
