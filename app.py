@@ -3,6 +3,8 @@ import datetime
 import time
 from zoneinfo import ZoneInfo
 import requests
+import json
+import base64
 
 # Configuración de la zona horaria de España Peninsular
 TZ_MADRID = ZoneInfo("Europe/Madrid")
@@ -14,95 +16,141 @@ st.set_page_config(
     layout="centered"
 )
 
-# Estilos CSS personalizados
-st.markdown("""
+# --- CONFIGURACIÓN DE PWA (MANIFEST.JSON EMBUDIDO) ---
+manifest_data = {
+    "name": "Semáforo Arnedillo",
+    "short_name": "Semáforo",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0e1117",
+    "theme_color": "#0e1117",
+    "icons": [
+        {
+            "src": "https://em-content.zobj.net/source/apple/391/traffic-light_1f8a5.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://em-content.zobj.net/source/apple/391/traffic-light_1f8a5.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
+
+# Codificar el manifest en base64 para inyectarlo dinámicamente
+manifest_base64 = base64.b64encode(json.dumps(manifest_data).encode()).decode()
+
+# Estilos CSS personalizados + Meta Etiquetas PWA
+st.markdown(f"""
+    <!-- Metatags para compatibilidad PWA en iOS y Android -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Semáforo Arnedillo">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0e1117">
+    <link rel="apple-touch-icon" href="https://em-content.zobj.net/source/apple/391/traffic-light_1f8a5.png">
+    <link rel="manifest" href="data:application/json;base64,{manifest_base64}">
+
     <style>
-    .stApp {
+    .stApp {{
         background-color: #0e1117;
-    }
-    .traffic-box {
+    }}
+    .traffic-box {{
         border-radius: 16px;
         padding: 24px;
         text-align: center;
         margin-bottom: 20px;
         box-shadow: 0 8px 16px rgba(0,0,0,0.3);
         transition: all 0.3s ease;
-    }
-    .traffic-light {
+    }}
+    .traffic-light {{
         width: 80px;
         height: 80px;
         border-radius: 50%;
         margin: 0 auto 15px auto;
         box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-    .green-glow {
+    }}
+    .green-glow {{
         background-color: #2ea043;
         box-shadow: 0 0 30px #2ea043;
-    }
-    .amber-glow {
+    }}
+    .amber-glow {{
         background-color: #d29922;
         box-shadow: 0 0 30px #d29922;
-    }
-    .red-glow {
+    }}
+    .red-glow {{
         background-color: #f85149;
         box-shadow: 0 0 30px #f85149;
-    }
+    }}
     
     /* Animación de parpadeo cuando quedan <= 10 segundos */
-    @keyframes warning-blink {
-        0% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.98); }
-        100% { opacity: 1; transform: scale(1); }
-    }
-    .blink-alert {
+    @keyframes warning-blink {{
+        0% {{ opacity: 1; transform: scale(1); }}
+        50% {{ opacity: 0.5; transform: scale(0.98); }}
+        100% {{ opacity: 1; transform: scale(1); }}
+    }}
+    .blink-alert {{
         animation: warning-blink 1s infinite;
-    }
+    }}
 
     /* Contenedor del selector centrado */
-    div[data-testid="stSegmentedControlContainer"] {
+    div[data-testid="stSegmentedControlContainer"] {{
         display: flex !important;
         justify-content: center !important;
         width: 100% !important;
         margin-bottom: 25px !important;
-    }
+    }}
 
-    /* Selector Entrada/Salida mucho más grande y llamativo */
-    div[data-testid="stSegmentedControl"] {
+    /* Selector Entrada/Salida mucho más grande */
+    div[data-testid="stSegmentedControl"] {{
         width: 100% !important;
         max-width: 600px !important;
-    }
+    }}
 
-    div[data-testid="stSegmentedControl"] button {
+    div[data-testid="stSegmentedControl"] button {{
         font-size: 1.4rem !important;
         padding: 16px 28px !important;
         font-weight: 700 !important;
         border-radius: 12px !important;
-    }
+    }}
     
     /* Barra de progreso personalizada más grande */
-    .stProgress > div > div > div > div {
+    .stProgress > div > div > div > div {{
         height: 18px !important;
         border-radius: 9px !important;
-    }
-    .progress-label {
+    }}
+    .progress-label {{
         display: flex;
         justify-content: space-between;
         font-size: 0.95rem;
         font-weight: 600;
         margin-bottom: 4px;
         opacity: 0.9;
-    }
+    }}
     
-    .centered-title {
+    .centered-title {{
         text-align: center;
         margin-bottom: 15px;
-    }
+    }}
     </style>
 """, unsafe_allow_html=True)
 
 # Título de la aplicación
 st.title("🚦 Control del Semáforo de Arnedillo")
 st.caption("Paso alternativo unidireccional en tiempo real")
+
+# Guía paso a paso para guardar como App en el teléfono
+with st.expander("📲 ¿Cómo instalar esta App en tu teléfono?"):
+    st.markdown("""
+    **En iPhone / iPad (Safari):**
+    1. Pulsa el botón **Compartir** (el icono del cuadrado con la flecha hacia arriba ⎋).
+    2. Selecciona **"Añadir a la pantalla de inicio"** ➕.
+
+    **En Android (Chrome / Edge):**
+    3. Pulsa los **3 puntos** de la esquina superior derecha ⋮.
+    4. Selecciona **"Añadir a la pantalla de inicio"** o **"Instalar aplicación"** 📲.
+    """)
 
 # Configuración del ciclo (en segundos)
 DURACION_VERDE = 67    # 1 min 7 seg
@@ -140,7 +188,7 @@ def obtener_clima_arnedillo():
     except Exception:
         return "🌡️ No disponible"
 
-# Título y Selector centrado y de mayor tamaño
+# Selector centrado y grande
 st.markdown("<h3 class='centered-title'>Selecciona el sentido de circulación:</h3>", unsafe_allow_html=True)
 
 opcion = st.segmented_control(
@@ -198,13 +246,13 @@ with placeholder.container():
     tiempo_formateado = f"{mins:02d}:{segs:02d}"
     porcentaje_texto = f"{int(progreso * 100)}%"
     
-    # 1. PREDICCIÓN: Calcular la hora exacta del próximo cambio
+    # Predicción de la hora exacta del próximo cambio
     hora_proximo_cambio = ahora_madrid + datetime.timedelta(seconds=restante)
     
-    # 2. AVISO VISUAL: Activar animación parpadeante cuando queden <= 10s
+    # Animación de parpadeo cuando quedan <= 10 segundos
     clase_animacion = "blink-alert" if restante <= 10 else ""
     
-    # Notificación flotante (toast) cuando se acerca el cambio a verde
+    # Notificación flotante (toast)
     if estado == "ROJO" and restante <= 10:
         st.toast(f"🔔 ¡Atención! Semáforo cambiando a VERDE en {restante}s", icon="🟢")
     elif estado == "VERDE" and restante <= 10:
@@ -243,7 +291,7 @@ with placeholder.container():
     else:
         st.error(mensaje)
         
-    # Información adicional con hora del próximo cambio incorporada
+    # Información de tiempo y clima
     st.divider()
     col1, col2, col3 = st.columns(3)
     with col1:
