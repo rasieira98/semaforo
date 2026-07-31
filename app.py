@@ -11,22 +11,21 @@ import base64
 # ---------------------------------------------------------
 TZ_MADRID = ZoneInfo("Europe/Madrid")
 
-# Configuración de la pestaña del navegador
+# Configuración de la pestaña del navegador web
 st.set_page_config(
-    page_title="Paso Alternativo LR-115 | Arnedillo", # Nombre en la pestaña del navegador
-    page_icon="🚗",                                    # Icono/Emoji en la pestaña
+    page_title="Semáforo", # Título de la pestaña
+    page_icon="🚦",         # Icono en la pestaña del navegador
     layout="centered"
 )
 
 # ---------------------------------------------------------
 # 2. CONFIGURACIÓN PWA (NOMBRE E ICONO DE LA APP EN MÓVIL)
 # ---------------------------------------------------------
-# Nombre e icono que aparecerán cuando el usuario instale la App en su teléfono
-APP_NOMBRE_COMPLETO = "Tráfico Arnedillo"
-APP_NOMBRE_CORTO = "Paso Arnedillo"
+APP_NOMBRE_COMPLETO = "Semáforo"
+APP_NOMBRE_CORTO = "Semáforo"
 
-# Puedes cambiar esta URL por cualquier imagen PNG propia (ej. alojada en GitHub o Imgur)
-APP_ICONO_URL = "https://em-content.zobj.net/source/apple/391/traffic-light_1f8a5.png"
+# URL de un icono HD de semáforo transparente para la app
+APP_ICONO_URL = "https://cdn-icons-png.flaticon.com/512/3448/3448339.png"
 
 manifest_data = {
     "name": APP_NOMBRE_COMPLETO,
