@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 import time
 from zoneinfo import ZoneInfo
+import requests
 
 # Configuración de la zona horaria de España Peninsular
 TZ_MADRID = ZoneInfo("Europe/Madrid")
@@ -84,7 +85,35 @@ CICLO_TOTAL = DURACION_VERDE + DURACION_AMBAR + DURACION_ROJO
 REF_ENTRADA = datetime.time(18, 0, 59)
 REF_SALIDA = datetime.time(18, 6, 28)
 
-# Selección de sentido (diseño más grande vía CSS)
+# Función para consultar la meteorología (con caché de 10 min para optimizar)
+@st.cache_data(ttl=600)
+def obtener_clima_arnedillo():
+    try:
+        # Coordenadas aproximadas de Arnedillo (La Rioja)
+        url = "https://api.open-meteo.com/v1/forecast?latitude=42.2136&longitude=-2.2356&current=temperature_2m,weather_code&timezone=Europe%2FBerlin"
+        res = requests.get(url, timeout=3).json()
+        temp = round(res["current"]["temperature_2m"])
+        code = res["current"]["weather_code"]
+        
+        # Mapeo de códigos WMO a descripción visual
+        clima_dict = {
+            0: ("☀️", "Despejado"),
+            1: ("🌤️", "Casi despejado"),
+            2: ("⛅", "Parcialmente nublado"),
+            3: ("☁️", "Nublado"),
+            45: ("🌫️", "Niebla"), 48: ("🌫️", "Cencellada"),
+            51: ("🌧️", "Llovizna suave"), 53: ("🌧️", "Llovizna"), 55: ("🌧️", "Llovizna intensa"),
+            61: ("🌧️", "Lluvia ligera"), 63: ("🌧️", "Lluvia moderada"), 65: ("🌧️", "Lluvia fuerte"),
+            71: ("❄️", "Nieve ligera"), 73: ("❄️", "Nieve moderada"), 75: ("❄️", "Nieve fuerte"),
+            80: ("🌦️", "Chubascos"), 81: ("🌦️", "Chubascos fuertes"),
+            95: ("⛈️", "Tormenta")
+        }
+        icono, desc = clima_dict.get(code, ("🌡️", "Variable"))
+        return f"{icono} {temp}°C ({desc})"
+    except Exception:
+        return "🌡️ No disponible"
+
+# Selección de sentido
 st.markdown("### Selecciona el sentido de circulación:")
 opcion = st.segmented_control(
     "Selecciona el sentido de circulación:",
@@ -94,10 +123,7 @@ opcion = st.segmented_control(
 )
 
 def calcular_estado(hora_referencia):
-    # Obtener la hora actual explícita en España Peninsular
     ahora = datetime.datetime.now(TZ_MADRID)
-    
-    # Crear la fecha de referencia con zona horaria
     inicio_ref = datetime.datetime.combine(ahora.date(), hora_referencia).replace(tzinfo=TZ_MADRID)
     
     diferencia_seg = (ahora - inicio_ref).total_seconds()
@@ -131,7 +157,6 @@ def calcular_estado(hora_referencia):
     progreso = max(0.0, min(1.0, 1.0 - (restante / duracion_fase)))
     return estado, int(restante), glow, bg_color, border_color, mensaje, progreso, ahora
 
-# Seleccionar la hora de referencia
 hora_ref = REF_ENTRADA if opcion == "Entrada a Arnedillo" else REF_SALIDA
 
 # Contenedor dinámico
@@ -158,7 +183,7 @@ with placeholder.container():
         unsafe_allow_html=True
     )
     
-    # Barra de progreso con indicador de porcentaje
+    # Barra de progreso con porcentaje
     st.markdown(
         f"""
         <div class="progress-label">
@@ -178,7 +203,7 @@ with placeholder.container():
     else:
         st.error(mensaje)
         
-    # Información de tiempo local
+    # Información adicional
     st.divider()
     col1, col2 = st.columns(2)
     with col1:
@@ -188,8 +213,8 @@ with placeholder.container():
         )
     with col2:
         st.metric(
-            label="🏔️ Tiempo en Arnedillo", 
-            value=ahora_madrid.strftime("%H:%M:%S")
+            label="🏔️ Clima en Arnedillo", 
+            value=obtener_clima_arnedillo()
         )
 
 # Actualización continua
