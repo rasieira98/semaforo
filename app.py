@@ -1,6 +1,10 @@
 import streamlit as st
 import datetime
 import time
+from zoneinfo import ZoneInfo
+
+# Configuración de la zona horaria de España Peninsular
+TZ_MADRID = ZoneInfo("Europe/Madrid")
 
 # Configuración de la página
 st.set_page_config(
@@ -9,7 +13,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Estilos CSS personalizados para tarjetas, luces y sombras
+# Estilos CSS personalizados
 st.markdown("""
     <style>
     .stApp {
@@ -42,6 +46,27 @@ st.markdown("""
         background-color: #f85149;
         box-shadow: 0 0 30px #f85149;
     }
+    
+    /* Selector Entrada/Salida más grande */
+    div[data-testid="stSegmentedControl"] button {
+        font-size: 1.25rem !important;
+        padding: 12px 24px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Barra de progreso personalizada más grande */
+    .stProgress > div > div > div > div {
+        height: 18px !important;
+        border-radius: 9px !important;
+    }
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        opacity: 0.9;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -59,16 +84,21 @@ CICLO_TOTAL = DURACION_VERDE + DURACION_AMBAR + DURACION_ROJO
 REF_ENTRADA = datetime.time(18, 0, 59)
 REF_SALIDA = datetime.time(18, 6, 28)
 
-# Selección de sentido
+# Selección de sentido (diseño más grande vía CSS)
+st.markdown("### Selecciona el sentido de circulación:")
 opcion = st.segmented_control(
     "Selecciona el sentido de circulación:",
     options=["Entrada a Arnedillo", "Salida de Arnedillo"],
-    default="Entrada a Arnedillo"
+    default="Entrada a Arnedillo",
+    label_visibility="collapsed"
 )
 
 def calcular_estado(hora_referencia):
-    ahora = datetime.datetime.now()
-    inicio_ref = datetime.datetime.combine(ahora.date(), hora_referencia)
+    # Obtener la hora actual explícita en España Peninsular
+    ahora = datetime.datetime.now(TZ_MADRID)
+    
+    # Crear la fecha de referencia con zona horaria
+    inicio_ref = datetime.datetime.combine(ahora.date(), hora_referencia).replace(tzinfo=TZ_MADRID)
     
     diferencia_seg = (ahora - inicio_ref).total_seconds()
     segundos_en_ciclo = diferencia_seg % CICLO_TOTAL
@@ -99,7 +129,7 @@ def calcular_estado(hora_referencia):
         mensaje = "🔴 ESPERA: El sentido contrario tiene la vía libre."
         
     progreso = max(0.0, min(1.0, 1.0 - (restante / duracion_fase)))
-    return estado, int(restante), glow, bg_color, border_color, mensaje, progreso
+    return estado, int(restante), glow, bg_color, border_color, mensaje, progreso, ahora
 
 # Seleccionar la hora de referencia
 hora_ref = REF_ENTRADA if opcion == "Entrada a Arnedillo" else REF_SALIDA
@@ -108,11 +138,12 @@ hora_ref = REF_ENTRADA if opcion == "Entrada a Arnedillo" else REF_SALIDA
 placeholder = st.empty()
 
 with placeholder.container():
-    estado, restante, glow, bg_color, border_color, mensaje, progreso = calcular_estado(hora_ref)
+    estado, restante, glow, bg_color, border_color, mensaje, progreso, ahora_madrid = calcular_estado(hora_ref)
     
     mins = restante // 60
     segs = restante % 60
     tiempo_formateado = f"{mins:02d}:{segs:02d}"
+    porcentaje_texto = f"{int(progreso * 100)}%"
     
     # Tarjeta Principal del Semáforo
     st.markdown(
@@ -127,7 +158,16 @@ with placeholder.container():
         unsafe_allow_html=True
     )
     
-    # Barra de progreso del estado actual
+    # Barra de progreso con indicador de porcentaje
+    st.markdown(
+        f"""
+        <div class="progress-label">
+            <span>Progreso de la fase actual</span>
+            <span>{porcentaje_texto}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     st.progress(progreso)
     
     # Cuadro informativo
@@ -138,13 +178,19 @@ with placeholder.container():
     else:
         st.error(mensaje)
         
-    # Información adicional
+    # Información de tiempo local
     st.divider()
     col1, col2 = st.columns(2)
     with col1:
-        st.metric(label="🕒 Hora Actual", value=datetime.datetime.now().strftime("%H:%M:%S"))
+        st.metric(
+            label="🕒 Hora Local (España)", 
+            value=ahora_madrid.strftime("%H:%M:%S")
+        )
     with col2:
-        st.metric(label="🔄 Ciclo Completo", value="11 min (660s)")
+        st.metric(
+            label="🏔️ Tiempo en Arnedillo", 
+            value=ahora_madrid.strftime("%H:%M:%S")
+        )
 
 # Actualización continua
 time.sleep(1)
